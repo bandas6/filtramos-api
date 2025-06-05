@@ -32,24 +32,24 @@ const generatePdf = async (products) => {
 
 // utils/pdfGenerator.js
 
-async function generatePdfFromHtml(html) {
 
+async function generatePdfFromHtml(html) {
   const browser = await puppeteer.launch({
-    headless: 'new',                       // o true en versiones antiguas
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    executablePath: '/usr/bin/chromium-browser'
+    headless: 'new',
+    args: ['--no-sandbox', '--disable-setuid-sandbox']
+    // ❌ NO PONGAS executablePath EN WINDOWS si usas puppeteer completo
   });
 
   const page = await browser.newPage();
 
   await page.setContent(html, {
-    waitUntil: 'domcontentloaded', // o 'networkidle0'
-    timeout: 0 // sin límite de tiempo
+    waitUntil: 'domcontentloaded',
+    timeout: 0
   });
 
   const pdfBuffer = await page.pdf({
     format: 'A4',
-    printBackground: true,
+    printBackground: true
   });
 
   await browser.close();
