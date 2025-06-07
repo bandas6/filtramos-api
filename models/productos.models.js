@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const productSchema = new mongoose.Schema({
-  referencia: { type: String, required: true },
+  referencia: { type: String },
   diametroExterno: { type: String },
   diametroInterno: { type: Number },
   alturaPliegue: { type: Number },

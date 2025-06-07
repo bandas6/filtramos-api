@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const { dbConnection } = require('../database/config')
+const path = require('path');
 
 class Server {
 
@@ -35,6 +36,9 @@ class Server {
 
         // lectura y parceo de el body
         this.app.use(express.json());
+
+        // Habilitar carpeta pública
+        this.app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
         // Direcctorio publico
         this.app.use(express.static('public'));

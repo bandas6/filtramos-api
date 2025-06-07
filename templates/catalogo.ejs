@@ -72,13 +72,14 @@
 
     .image-box,
     .product-img {
-      flex: 0 0 200px;
       height: 15rem;
       width: 10rem;
-      background: #d9d9d9;
-      object-fit: contain;
       min-width: 19rem;
+      background: #d9d9d9;
       border-radius: 0.4rem;
+      object-fit: cover;
+      object-position: center;
+      display: block;
     }
 
     .c-tech,
@@ -151,38 +152,42 @@
 
       <!-- Información básica del producto -->
       <div class="product-info">
-        <% if (p.imagesUrl && p.imagesUrl.length) { %>
-          <img class="product-img" src="<%= p.imagesUrl[0] %>" alt="Imagen <%= p.referencia %>">
-          <% } else { %>
-            <div class="image-box"></div>
-            <% } %>
-              <div class="c-pInf">
-                <div class="row"><span class="label">Alto:</span>
-                  <p>
-                    <%= p.alto ? p.alto + ' mm' : 'N/A' %>
-                  </p>
-                </div>
-                <div class="row"><span class="label">Diámetro Externo:</span>
-                  <p>
-                    <%= p.diametroExterno ? p.diametroExterno + ' mm' : 'N/A' %>
-                  </p>
-                </div>
-                <div class="row"><span class="label">Diámetro Interno:</span>
-                  <p>
-                    <%= p.diametroInterno ? p.diametroInterno + ' mm' : 'N/A' %>
-                  </p>
-                </div>
-                <div class="row"><span class="label">Aplicaciones:</span>
-                  <p>
-                    <%= (p.aplicaciones && p.aplicaciones.length) ? p.aplicaciones.join(', ') : ' N/A' %>
-                  </p>
-                </div>
-                <div class="row"><span class="label">Equivalencias:</span>
-                  <p>
-                    <%= (p.equivalencias && p.equivalencias.length) ? p.equivalencias.join(', ') : ' N/A' %>
-                  </p>
-                </div>
-              </div>
+        <% if (p.imagesUrl && p.imagesUrl.length> 0) { %>
+          <% if (p.imagesBase64 && p.imagesBase64[0]) { %>
+            <img class="product-img" src="<%= p.imagesBase64[0] %>" alt="Imagen <%= p.referencia %>">
+            <% } else { %>
+              <div class="image-box"></div>
+              <% } %>
+                <% } else { %>
+                  <div class="image-box"></div>
+                  <% } %>
+                    <div class="c-pInf">
+                      <div class="row"><span class="label">Alto:</span>
+                        <p>
+                          <%= p.alto ? p.alto + ' mm' : 'N/A' %>
+                        </p>
+                      </div>
+                      <div class="row"><span class="label">Diámetro Externo:</span>
+                        <p>
+                          <%= p.diametroExterno ? p.diametroExterno + ' mm' : 'N/A' %>
+                        </p>
+                      </div>
+                      <div class="row"><span class="label">Diámetro Interno:</span>
+                        <p>
+                          <%= p.diametroInterno ? p.diametroInterno + ' mm' : 'N/A' %>
+                        </p>
+                      </div>
+                      <div class="row"><span class="label">Aplicaciones:</span>
+                        <p>
+                          <%= (p.aplicaciones && p.aplicaciones.length) ? p.aplicaciones.join(', ') : ' N/A' %>
+                        </p>
+                      </div>
+                      <div class="row"><span class="label">Equivalencias:</span>
+                        <p>
+                          <%= (p.equivalencias && p.equivalencias.length) ? p.equivalencias.join(', ') : ' N/A' %>
+                        </p>
+                      </div>
+                    </div>
       </div>
 
       <hr>
@@ -198,63 +203,69 @@
       <!-- Información técnica -->
       <div class="tech-info">
         <% if (p.imagesUrl && p.imagesUrl.length> 1) { %>
-          <img class="product-img" src="<%= p.imagesUrl[1] %>" alt="Detalle <%= p.referencia %>">
-          <% } else { %>
-            <div class="image-box"></div>
-            <% } %>
-              <div class="c-tech">
-                <div class="row"><span class="label">Papel:</span>
-                  <p>
-                    <%= p.papel || 'N/A' %>
-                  </p>
-                </div>
-                <div class="row"><span class="label">Altura de Pliegue:</span>
-                  <p>
-                    <%= p.alturaPliegue ? p.alturaPliegue + ' mm' : 'N/A' %>
-                  </p>
-                </div>
-                <div class="row"><span class="label">Corte de Papel:</span>
-                  <p>
-                    <%= p.cortePapel ? p.cortePapel + ' mm' : 'N/A' %>
-                  </p>
-                </div>
-                <div class="row"><span class="label">Cantidad de Pliegues:</span>
-                  <p>
-                    <%= p.cantidadPliegues || 'N/A' %>
-                  </p>
-                </div>
-                <div class="row"><span class="label">Malla:</span>
-                  <p>
-                    <%= p.malla || 'N/A' %>
-                  </p>
-                </div>
-                <div class="row"><span class="label">Longitud de Malla Externa:</span>
-                  <p>
-                    <%= p.longitudMallaExterna ? p.longitudMallaExterna + ' mm' : 'N/A' %>
-                  </p>
-                </div>
-                <div class="row"><span class="label">Longitud de Malla Interna:</span>
-                  <p>
-                    <%= p.longitudMallaInterna ? p.longitudMallaInterna + ' mm' : 'N/A' %>
-                  </p>
-                </div>
-                <div class="row"><span class="label">Poliuretano:</span>
-                  <p>
-                    <%= p.polibretano || 'N/A' %>
-                  </p>
-                </div>
-                <div class="row"><span class="label">Anillo:</span>
-                  <p>
-                    <%= p.anillo || 'N/A' %>
-                  </p>
-                </div>
-                <div class="row"><span class="label">Tapa:</span>
-                  <p>
-                    <%= p.tapa || 'N/A' %>
-                  </p>
-                </div>
-              </div>
+          <% if (p.imagesBase64 && p.imagesBase64[1]) { %>
+            <img class="product-img" src="<%= p.imagesBase64[1] %>" alt="Detalle <%= p.referencia %>">
+            <% } else { %>
+              <div class="image-box"></div>
+              <% } %>
+                <% } else { %>
+                  <div class="image-box"></div>
+                  <% } %>
+
+                    <div class="c-tech">
+                      <div class="row"><span class="label">Papel:</span>
+                        <p>
+                          <%= p.papel || 'N/A' %>
+                        </p>
+                      </div>
+                      <div class="row"><span class="label">Altura de Pliegue:</span>
+                        <p>
+                          <%= p.alturaPliegue ? p.alturaPliegue + ' mm' : 'N/A' %>
+                        </p>
+                      </div>
+                      <div class="row"><span class="label">Corte de Papel:</span>
+                        <p>
+                          <%= p.cortePapel ? p.cortePapel + ' mm' : 'N/A' %>
+                        </p>
+                      </div>
+                      <div class="row"><span class="label">Cantidad de Pliegues:</span>
+                        <p>
+                          <%= p.cantidadPliegues || 'N/A' %>
+                        </p>
+                      </div>
+                      <div class="row"><span class="label">Malla:</span>
+                        <p>
+                          <%= p.malla || 'N/A' %>
+                        </p>
+                      </div>
+                      <div class="row"><span class="label">Longitud de Malla Externa:</span>
+                        <p>
+                          <%= p.longitudMallaExterna ? p.longitudMallaExterna + ' mm' : 'N/A' %>
+                        </p>
+                      </div>
+                      <div class="row"><span class="label">Longitud de Malla Interna:</span>
+                        <p>
+                          <%= p.longitudMallaInterna ? p.longitudMallaInterna + ' mm' : 'N/A' %>
+                        </p>
+                      </div>
+                      <div class="row"><span class="label">Poliuretano:</span>
+                        <p>
+                          <%= p.polibretano || 'N/A' %>
+                        </p>
+                      </div>
+                      <div class="row"><span class="label">Anillo:</span>
+                        <p>
+                          <%= p.anillo || 'N/A' %>
+                        </p>
+                      </div>
+                      <div class="row"><span class="label">Tapa:</span>
+                        <p>
+                          <%= p.tapa || 'N/A' %>
+                        </p>
+                      </div>
+                    </div>
       </div>
+
 
       <!-- Pie de página -->
       <div class="page-footer">Pag <%= i + 1 %>
