@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Product = require('../models/productos.models');
 const Files = require('../models/files.models');
 const ejs = require('ejs');
@@ -14,7 +15,17 @@ const CAMPOS = [
 const limpiar = (body = {}) =>
   Object.fromEntries(Object.entries(body).filter(([k]) => CAMPOS.includes(k)));
 
+// null o '' significa "sin dato"
+const vacio = (v) => v === null || v === undefined || (typeof v === 'string' && v.trim() === '');
+
 const esErrorDeDatos = (error) => error.name === 'ValidationError' || error.name === 'CastError';
+
+// Busca otro producto con la misma referencia sin distinguir mayúsculas
+const referenciaEnUso = (referencia, excluirId) => {
+  const filtro = { referencia };
+  if (excluirId) filtro._id = { $ne: excluirId };
+  return Product.findOne(filtro).collation(Product.COLACION_REFERENCIA);
+};
 
 // Obtener todos los productos
 const getAll = async (req, res) => {
@@ -44,15 +55,14 @@ const getById = async (req, res) => {
 // Crear producto
 const create = async (req, res) => {
   try {
-    const data = limpiar(req.body);
+    const data = Object.fromEntries(Object.entries(limpiar(req.body)).filter(([, v]) => !vacio(v)));
     data.referencia = String(data.referencia || '').trim();
 
     if (!data.referencia) {
       return res.status(400).json({ ok: false, error: 'La referencia es requerida' });
     }
 
-    const existe = await Product.findOne({ referencia: data.referencia });
-    if (existe) {
+    if (await referenciaEnUso(data.referencia)) {
       return res.status(400).json({ ok: false, error: `Ya existe un producto con la referencia ${data.referencia}` });
     }
 
@@ -61,6 +71,7 @@ const create = async (req, res) => {
 
     res.status(201).json({ ok: true, product });
   } catch (error) {
+    if (error.code === 11000) return res.status(400).json({ ok: false, error: 'Ya existe un producto con esa referencia' });
     if (esErrorDeDatos(error)) return res.status(400).json({ ok: false, error: error.message });
     console.error('Error creating product:', error);
     res.status(500).json({ ok: false, error: 'Internal Server Error' });
@@ -105,6 +116,9 @@ const getFiles = async (req, res) => {
 const update = async (req, res) => {
   try {
     const { id } = req.params;
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(404).json({ ok: false, error: 'Product not found' });
+    }
     const data = limpiar(req.body);
 
     if ('referencia' in data) {
@@ -112,13 +126,23 @@ const update = async (req, res) => {
       if (!data.referencia) {
         return res.status(400).json({ ok: false, error: 'La referencia no puede quedar vacía' });
       }
-      const otro = await Product.findOne({ referencia: data.referencia, _id: { $ne: id } });
-      if (otro) {
+      if (await referenciaEnUso(data.referencia, id)) {
         return res.status(400).json({ ok: false, error: `Ya existe un producto con la referencia ${data.referencia}` });
       }
     }
 
-    const updatedProduct = await Product.findByIdAndUpdate(id, data, { new: true, runValidators: true });
+    // Los campos enviados vacíos (null o '') se borran del documento
+    const $set = {};
+    const $unset = {};
+    for (const [campo, valor] of Object.entries(data)) {
+      if (vacio(valor)) $unset[campo] = '';
+      else $set[campo] = valor;
+    }
+    const cambios = {};
+    if (Object.keys($set).length) cambios.$set = $set;
+    if (Object.keys($unset).length) cambios.$unset = $unset;
+
+    const updatedProduct = await Product.findByIdAndUpdate(id, cambios, { new: true, runValidators: true });
 
     if (!updatedProduct) {
       return res.status(404).json({ ok: false, error: 'Product not found' });
@@ -126,6 +150,7 @@ const update = async (req, res) => {
 
     res.status(200).json({ ok: true, product: updatedProduct });
   } catch (error) {
+    if (error.code === 11000) return res.status(400).json({ ok: false, error: 'Ya existe un producto con esa referencia' });
     if (esErrorDeDatos(error)) return res.status(400).json({ ok: false, error: error.message });
     console.error('Error updating product:', error);
     res.status(500).json({ ok: false, error: 'Internal Server Error' });

@@ -31,7 +31,18 @@ API del catálogo, inventario y panel interno de Filtramos SAS (Node.js, Express
 | PUT | `/api/productos/actualizar/:id` | admin |
 | DELETE | `/api/productos/remover/:id` | admin |
 
+El catálogo PDF admite 5 solicitudes por minuto por IP. El login cuenta solo los intentos fallidos.
+
+## Referencias únicas
+
+La referencia no distingue mayúsculas (`AF-100` = `af-100`). Para la base existente:
+
+- `npm run revisar-referencias`: lista productos sin referencia y referencias duplicadas. No cambia nada.
+- `npm run indice-referencia`: crea el índice único, solo si no hay duplicados.
+
 ## Pendiente conocido
+
+- El panel guarda el token en `localStorage` (expuesto si hubiera un XSS). Se revisará junto con el catálogo público (cookie `httpOnly`).
 
 - Las imágenes se guardan en el disco del servidor (`public/uploads`). En hostings como Render ese disco se borra en cada despliegue; se moverán a un almacenamiento externo en la Fase 1.
 - El campo `polibretano` conserva su nombre para no romper los datos existentes; se renombrará a `poliuretano` con la migración desde Excel.

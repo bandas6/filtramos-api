@@ -5,10 +5,11 @@ const { validarJWT } = require('../middlewares/validar-jwt');
 
 const router = express.Router();
 
-// Máximo 10 intentos de login cada 15 minutos por IP
+// Máximo 10 intentos FALLIDOS de login cada 15 minutos por IP
 const limiteLogin = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 10,
+  skipSuccessfulRequests: true,
   standardHeaders: 'draft-8',
   legacyHeaders: false,
   message: { ok: false, error: 'Demasiados intentos. Espere unos minutos.' }

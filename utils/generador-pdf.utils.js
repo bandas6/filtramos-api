@@ -29,22 +29,40 @@ const generatePdf = async (products) => {
 
 // utils/pdfGenerator.js
 
-async function generatePdfFromHtml(html) {
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage'
-    ],
-    executablePath: puppeteer.executablePath() // fuerza a usar el binario “quisquilloso” que Puppeteer descargó
-  });
+// Una sola instancia de Chromium compartida entre peticiones; se relanza si se cae.
+let navegador = null;
 
+function obtenerNavegador() {
+  if (!navegador) {
+    navegador = puppeteer.launch({
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage'
+      ],
+      executablePath: puppeteer.executablePath() // fuerza a usar el binario que Puppeteer descargó
+    }).then((browser) => {
+      browser.on('disconnected', () => { navegador = null; });
+      return browser;
+    }).catch((err) => {
+      navegador = null;
+      throw err;
+    });
+  }
+  return navegador;
+}
+
+async function generatePdfFromHtml(html) {
+  const browser = await obtenerNavegador();
   const page = await browser.newPage();
-  await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 0 });
-  const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
-  await browser.close();
-  return pdfBuffer;
+  try {
+    await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    return await page.pdf({ format: 'A4', printBackground: true, timeout: 120000 });
+  } finally {
+    // Siempre se cierra la pestaña, aunque falle la generación
+    await page.close().catch(() => {});
+  }
 }
 
 module.exports = {

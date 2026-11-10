@@ -31,4 +31,9 @@ productSchema.methods.toJSON = function () {
   return product;
 };
 
+// Comparación de referencias sin distinguir mayúsculas ("AF-100" = "af-100").
+// El índice único con esta colación lo crea scripts/indice-referencia.js, solo si no hay duplicados.
+const COLACION_REFERENCIA = { locale: 'es', strength: 2 };
+
 module.exports = mongoose.model('Product', productSchema);
+module.exports.COLACION_REFERENCIA = COLACION_REFERENCIA;

@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const multer = require('multer');
 const { dbConnection } = require('../database/config');
 
 class Server {
@@ -8,6 +9,9 @@ class Server {
   constructor() {
     this.app = express();
     this.port = process.env.PORT || 8080;
+
+    // Detrás del proxy de Render: req.ip es la IP real del cliente (necesario para los límites de peticiones)
+    this.app.set('trust proxy', 1);
 
     this.middlewares();
     this.routes();
@@ -38,10 +42,18 @@ class Server {
     this.app.use('/api/auth', require('../router/auth.router'));
     this.app.use('/api/productos', require('../router/productos.router'));
 
-    // Errores no controlados (por ejemplo, archivo rechazado por multer)
+    // Errores no controlados. Solo se devuelve el mensaje real en errores esperados del cliente.
     this.app.use((err, req, res, next) => {
+      if (err instanceof multer.MulterError) {
+        const error = err.code === 'LIMIT_FILE_SIZE' ? 'La imagen supera el máximo de 5 MB' : err.message;
+        return res.status(400).json({ ok: false, error });
+      }
+      const status = err.status || err.statusCode;
+      if (status >= 400 && status < 500) {
+        return res.status(status).json({ ok: false, error: err.message || 'Solicitud inválida' });
+      }
       console.error(err);
-      res.status(err.status || 400).json({ ok: false, error: err.message || 'Solicitud inválida' });
+      res.status(500).json({ ok: false, error: 'Error interno del servidor' });
     });
   }
 

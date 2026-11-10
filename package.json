@@ -6,6 +6,8 @@
     "start": "node app.js",
     "dev": "node --watch app.js",
     "crear-admin": "node scripts/crear-admin.js",
+    "revisar-referencias": "node scripts/indice-referencia.js",
+    "indice-referencia": "node scripts/indice-referencia.js --crear",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
