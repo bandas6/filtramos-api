@@ -7,6 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const mongoose = require('mongoose');
 const { dbConnection } = require('../database/config');
+const { confirmarBase } = require('./confirmar-base');
 const { normalizarReferencia } = require('../utils/referencias');
 
 const aplicar = process.argv.includes('--aplicar');
@@ -39,6 +40,7 @@ const aplicar = process.argv.includes('--aplicar');
   }
 
   if (aplicar) {
+    await confirmarBase('aplicar índices');
     if (duplicados.length) {
       console.error('No se aplicó nada: hay referencias duplicadas.');
       process.exitCode = 1;

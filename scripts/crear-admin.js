@@ -4,6 +4,7 @@ require('dotenv').config();
 const bcrypt = require('bcryptjs');
 const mongoose = require('mongoose');
 const { dbConnection } = require('../database/config');
+const { confirmarBase } = require('./confirmar-base');
 const Usuario = require('../models/usuario.models');
 
 (async () => {
@@ -18,6 +19,7 @@ const Usuario = require('../models/usuario.models');
   }
 
   await dbConnection();
+  await confirmarBase('crear o actualizar el administrador');
   const password = await bcrypt.hash(ADMIN_PASSWORD, 10);
   const email = ADMIN_EMAIL.toLowerCase().trim();
   const usuario = await Usuario.findOneAndUpdate(

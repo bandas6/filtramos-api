@@ -9,6 +9,7 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
 const { dbConnection } = require('../database/config');
+const { confirmarBase } = require('./confirmar-base');
 
 const aplicar = process.argv.includes('--aplicar');
 
@@ -20,6 +21,7 @@ const equivalenciaDeTexto = (texto) => {
 
 (async () => {
   await dbConnection();
+  if (aplicar) await confirmarBase('migrar productos (etapa B)');
   const col = mongoose.connection.db.collection('products');
   const docs = await col.find({}).toArray();
   console.log(`Base: ${mongoose.connection.db.databaseName} · productos: ${docs.length}${aplicar ? '' : ' (solo revisión)'}`);

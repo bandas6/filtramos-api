@@ -6,6 +6,7 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
 const { dbConnection } = require('../database/config');
+const { confirmarBase } = require('./confirmar-base');
 const Product = require('../models/productos.models');
 const { normalizarReferencia, claveDeBusqueda } = require('../utils/referencias');
 
@@ -13,6 +14,7 @@ const crear = process.argv.includes('--crear');
 
 (async () => {
   await dbConnection();
+  if (crear) await confirmarBase('crear índice de referencia');
   const col = Product.collection;
   const docs = await col.find({}, { projection: { referencia: 1, equivalencias: 1 } }).toArray();
 

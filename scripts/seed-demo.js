@@ -6,6 +6,7 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
 const { dbConnection } = require('../database/config');
+const { confirmarBase } = require('./confirmar-base');
 const Product = require('../models/productos.models');
 const { slugDe } = require('../utils/catalogo');
 const { PREFIJO, crearDemo } = require('./datos-demo');
@@ -29,6 +30,7 @@ function verificarEntorno() {
 (async () => {
   verificarEntorno();
   await dbConnection();
+  await confirmarBase(borrar ? 'borrar datos DEMO-' : 'crear datos DEMO-');
 
   if (borrar) {
     const movs = await Movimiento.deleteMany({ referencia: { $regex: `^${PREFIJO}` } }).setOptions({ permitirBorradoDemo: true });
