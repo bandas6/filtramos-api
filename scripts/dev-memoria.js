@@ -14,6 +14,7 @@ const os = require('os');
   process.env.MONGO_DBCNN = replSet.getUri('filtramos_dev_memoria');
   process.env.UPLOADS_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'filtramos-uploads-'));
   process.env.ALMACENAMIENTO = 'local'; // lo temporal no sube nada a la nube
+  process.env.DEMO_MEMORIA = '1'; // habilita GET /api/auth/demo (usuarios de demostración en el login)
   require('dotenv').config();
   if (!process.env.JWT_SECRET) process.env.JWT_SECRET = require('crypto').randomBytes(48).toString('hex');
 
@@ -50,7 +51,14 @@ const os = require('os');
   // Arranca el servidor sin volver a conectar
   const Server = require('../models/server');
   const server = new Server();
-  server.app.listen(server.port, () => {
+  // Express 5 llama este callback también si el puerto está ocupado: hay que revisar el error
+  server.app.listen(server.port, async (err) => {
+    if (err) {
+      console.error(`No se pudo abrir el puerto ${server.port}: ${err.code || err.message}. ¿Hay otra API corriendo?`);
+      await mongoose.disconnect();
+      await replSet.stop();
+      process.exit(1);
+    }
     console.log(`API EN MEMORIA en http://localhost:${server.port} · ${creados} productos DEMO- · usuarios *@demo.local`);
   });
 

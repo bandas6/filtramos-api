@@ -3,6 +3,7 @@ const cors = require('cors');
 const path = require('path');
 const multer = require('multer');
 const { dbConnection } = require('../database/config');
+const { origenesDe, advertenciasCors } = require('../utils/cors');
 
 class Server {
 
@@ -19,10 +20,10 @@ class Server {
 
   middlewares() {
     // CORS: solo los orígenes configurados en CORS_ORIGINS
-    const origenes = (process.env.CORS_ORIGINS || '')
-      .split(',')
-      .map((o) => o.trim())
-      .filter(Boolean);
+    const origenes = origenesDe(process.env.CORS_ORIGINS);
+    if (process.env.NODE_ENV !== 'test') {
+      for (const aviso of advertenciasCors()) console.warn(`⚠ ADVERTENCIA CORS: ${aviso}`);
+    }
 
     this.app.use(cors({
       origin: (origin, callback) => {
@@ -66,8 +67,13 @@ class Server {
       throw new Error('Defina JWT_SECRET (mínimo 32 caracteres) en .env');
     }
     await dbConnection();
-    this.app.listen(this.port, () => {
-      console.log(`Server is running on port ${this.port}`);
+    // Express 5 llama este callback también si falla (p. ej. puerto ocupado): el error se propaga
+    await new Promise((resolve, reject) => {
+      this.app.listen(this.port, (err) => {
+        if (err) return reject(new Error(`No se pudo abrir el puerto ${this.port}: ${err.code || err.message}`));
+        console.log(`Server is running on port ${this.port}`);
+        resolve();
+      });
     });
   }
 }

@@ -9,6 +9,7 @@ const imagenes = require('../controllers/admin/imagenes.controller');
 const inventario = require('../controllers/admin/inventario.controller');
 const importar = require('../controllers/admin/importar.controller');
 const solicitudes = require('../controllers/admin/solicitudes.controller');
+const inicio = require('../controllers/admin/inicio.controller');
 
 const router = express.Router();
 const soloAdmin = tieneRol('admin');
@@ -16,6 +17,7 @@ const soloAdmin = tieneRol('admin');
 // Todo /api/admin exige sesión. Lectura: cualquier rol. Escritura: según la ruta.
 router.use(validarJWT);
 
+router.get('/inicio', inicio.inicio);
 router.get('/resumen', productos.resumen);
 router.get('/productos', productos.listar);
 router.get('/productos/opciones', productos.opciones);

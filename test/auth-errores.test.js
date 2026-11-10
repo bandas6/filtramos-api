@@ -60,4 +60,8 @@ test('el límite de login bloquea al 11.º intento fallido', async () => {
   let ultimo;
   for (let i = 0; i < 11; i++) ultimo = await login('admin@prueba.test', 'mala');
   assert.equal(ultimo.status, 429);
+  // El panel distingue el bloqueo por el código y muestra los minutos que faltan
+  assert.equal(ultimo.body.codigo, 'demasiados-intentos');
+  assert.ok(ultimo.body.minutos >= 1 && ultimo.body.minutos <= 15);
+  assert.match(ultimo.body.error, /Espere \d+ minutos?/);
 });

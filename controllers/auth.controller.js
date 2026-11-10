@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const Usuario = require('../models/usuario.models');
+const { SECCIONES_AYUDA, PASOS } = require('../models/usuario.models');
 
 const generarJWT = (uid) =>
   jwt.sign({ uid }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '8h' });
@@ -34,4 +35,32 @@ const renovar = async (req, res) => {
   res.status(200).json({ ok: true, usuario: req.usuario, token: generarJWT(req.usuario._id.toString()) });
 };
 
-module.exports = { login, renovar };
+// PATCH /api/auth/preferencias  { ayudaCerrada?: string[], pasosNoAplica?: string[] }
+// Solo cambia las preferencias del propio usuario; ignora claves desconocidas.
+const preferencias = async (req, res) => {
+  const cuerpo = req.body || {};
+  const validas = { ayudaCerrada: SECCIONES_AYUDA, pasosNoAplica: PASOS };
+  for (const [campo, permitidas] of Object.entries(validas)) {
+    if (!(campo in cuerpo)) continue;
+    if (!Array.isArray(cuerpo[campo])) {
+      return res.status(400).json({ ok: false, error: `${campo} debe ser una lista` });
+    }
+    const lista = [...new Set(cuerpo[campo].map(String))];
+    const raras = lista.filter((v) => !permitidas.includes(v));
+    if (raras.length) return res.status(400).json({ ok: false, error: `Valores no válidos: ${raras.join(', ')}` });
+    req.usuario.set(`preferencias.${campo}`, lista);
+  }
+  await req.usuario.save();
+  res.json({ ok: true, preferencias: req.usuario.preferencias });
+};
+
+// GET /api/auth/demo -> usuarios de demostración. SOLO existe con la API en memoria (DEMO_MEMORIA=1).
+const demo = (req, res) => {
+  if (process.env.DEMO_MEMORIA !== '1' || process.env.NODE_ENV === 'production') return res.status(404).json({ ok: false, error: 'No encontrado' });
+  res.json({
+    ok: true,
+    usuarios: ['admin', 'bodega', 'ventas'].map((rol) => ({ rol, email: `${rol}@demo.local`, password: `demo-${rol}-12345` }))
+  });
+};
+
+module.exports = { login, renovar, preferencias, demo };

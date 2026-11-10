@@ -11,6 +11,11 @@ const usuarioSchema = new mongoose.Schema({
   ultimoAcceso: { type: Date },
   // Las sesiones emitidas antes de esta fecha dejan de valer (al restablecer la contraseña)
   passwordCambiadoEn: { type: Date },
+  // Preferencias del panel: cuadros de ayuda cerrados y primeros pasos marcados como "no aplica"
+  preferencias: {
+    ayudaCerrada: { type: [String], default: [] },
+    pasosNoAplica: { type: [String], default: [] }
+  },
   createdAt: { type: Date, default: Date.now }
 });
 
@@ -22,3 +27,7 @@ usuarioSchema.methods.toJSON = function () {
 
 module.exports = mongoose.model('Usuario', usuarioSchema);
 module.exports.ROLES = ROLES;
+
+// Claves válidas para las preferencias (el panel no puede guardar otra cosa)
+module.exports.SECCIONES_AYUDA = ['inicio', 'productos', 'inventario', 'importar', 'cotizaciones', 'imagenes', 'usuarios', 'ajustes'];
+module.exports.PASOS = ['whatsapp', 'usuarios', 'importar', 'fotos', 'borradores'];

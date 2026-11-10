@@ -44,6 +44,7 @@ function tarjeta(p, comps) {
     precio: p.precios?.publico ?? null,
     tieneVolumen: !!p.precios?.volumen?.length,
     equivalencias: (p.equivalencias || []).slice(0, 3),
+    totalEquivalencias: (p.equivalencias || []).length,
     diametroExterno: p.diametroExterno ?? null,
     alto: p.alto ?? null,
     imagen: p.imagesUrl?.[0] || null,
@@ -72,7 +73,31 @@ function ficha(p, comps) {
   };
 }
 
-// GET /api/public/productos?q=&tipo=&maquina=&diamExt=&alto=&pagina=
+const ESTADOS_DISPONIBILIDAD = ['disponible', 'ultimas', 'bajo-pedido'];
+const ORDENES = {
+  referencia: { referenciaNormalizada: 1 },
+  'precio-asc': { _precioOrden: 1, referenciaNormalizada: 1 },
+  'precio-desc': { _precioOrden: -1, referenciaNormalizada: 1 }
+};
+
+const numeroDe = (v) => {
+  if (v === undefined || v === null || v === '') return null;
+  const n = Number(String(v).replace(',', '.'));
+  return Number.isFinite(n) && n >= 0 ? n : null;
+};
+
+// Condición $expr de un producto simple para cada estado (mismas reglas que utils/disponibilidad)
+function exprDisponibilidad(estado) {
+  const disp = { $subtract: [{ $ifNull: ['$stock', 0] }, { $ifNull: ['$reservado', 0] }] };
+  const minimo = { $ifNull: ['$stockMinimo', 0] };
+  if (estado === 'bajo-pedido') return { $lte: [disp, 0] };
+  if (estado === 'ultimas') return { $and: [{ $gt: [disp, 0] }, { $gt: [minimo, 0] }, { $lt: [disp, minimo] }] };
+  return { $and: [{ $gt: [disp, 0] }, { $or: [{ $lte: [minimo, 0] }, { $gte: [disp, minimo] }] }] };
+}
+
+// GET /api/public/productos?q=&tipo=&maquina=&diamExt=&alto=&disponibilidad=&diamMin=&diamMax=&altoMin=&altoMax=&orden=&pagina=
+//   disponibilidad: uno o varios estados separados por coma (disponible, ultimas, bajo-pedido)
+//   orden: referencia (por defecto) | precio-asc | precio-desc (los productos sin precio van al final)
 const buscar = async (req, res) => {
   const filtro = { ...PUBLICADO };
   const clave = claveDeBusqueda(req.query.q);
@@ -80,22 +105,59 @@ const buscar = async (req, res) => {
   if (req.query.tipo && TIPOS[req.query.tipo]) filtro.tipo = req.query.tipo;
   const maquina = String(req.query.maquina || '').trim().slice(0, 80);
   if (maquina) filtro.aplicaciones = { $regex: escaparRegex(maquina), $options: 'i' };
-  // Medidas con tolerancia: ±2 mm o ±2 % (lo que sea mayor)
+  // Medidas con tolerancia (buscador del inicio): ±2 mm o ±2 % (lo que sea mayor)
   for (const [param, campo] of [['diamExt', 'diametroExterno'], ['alto', 'alto']]) {
-    const n = Number(String(req.query[param] || '').replace(',', '.'));
-    if (req.query[param] && Number.isFinite(n) && n > 0) {
+    const n = numeroDe(req.query[param]);
+    if (n > 0) {
       const tol = Math.max(2, n * 0.02);
       filtro[campo] = { $gte: n - tol, $lte: n + tol };
     }
   }
+  // Rangos del catálogo (mín./máx., inclusivos)
+  for (const [min, max, campo] of [['diamMin', 'diamMax', 'diametroExterno'], ['altoMin', 'altoMax', 'alto']]) {
+    const a = numeroDe(req.query[min]);
+    const b = numeroDe(req.query[max]);
+    if (a === null && b === null) continue;
+    filtro[campo] = { ...(filtro[campo] || {}), ...(a !== null ? { $gte: a } : {}), ...(b !== null ? { $lte: b } : {}) };
+  }
+
+  // Disponibilidad: los productos simples se filtran en la base; los kits, calculando sus componentes
+  const estados = String(req.query.disponibilidad || '').split(',').map((e) => e.trim()).filter((e) => ESTADOS_DISPONIBILIDAD.includes(e));
+  if (estados.length && estados.length < ESTADOS_DISPONIBILIDAD.length) {
+    const condiciones = [{ tipo: { $ne: 'kit' }, $expr: { $or: estados.map(exprDisponibilidad) } }];
+    if (filtro.tipo === undefined || filtro.tipo === 'kit') {
+      const kits = await Product.find({ ...filtro, tipo: 'kit' }, { kit: 1, tipo: 1 }).lean();
+      const comps = await mapaComponentes(kits);
+      const ids = kits.filter((k) => estados.includes(disponibilidad(k, comps).estado)).map((k) => k._id);
+      condiciones.push({ _id: { $in: ids } });
+    }
+    filtro.$or = condiciones;
+  }
+
+  const orden = ORDENES[req.query.orden] || ORDENES.referencia;
   const porPagina = 12;
   const total = await Product.countDocuments(filtro);
   const paginas = Math.max(Math.ceil(total / porPagina), 1);
   const pagina = Math.min(Math.max(parseInt(req.query.pagina, 10) || 1, 1), paginas);
-  const productos = await Product.find(filtro).sort({ referenciaNormalizada: 1 }).skip((pagina - 1) * porPagina).limit(porPagina).lean();
+  const productos = await Product.aggregate([
+    { $match: filtro },
+    // Sin precio: al final en ambos sentidos
+    { $addFields: { _precioOrden: { $ifNull: ['$precios.publico', orden._precioOrden === -1 ? -1 : Number.MAX_SAFE_INTEGER] } } },
+    { $sort: orden },
+    { $skip: (pagina - 1) * porPagina },
+    { $limit: porPagina }
+  ]);
   const comps = await mapaComponentes(productos);
   res.set('Cache-Control', 'public, max-age=60');
-  res.json({ ok: true, productos: productos.map((p) => tarjeta(p, comps)), total, pagina, paginas });
+  res.json({ ok: true, productos: productos.map((p) => tarjeta(p, comps)), total, pagina, paginas, porPagina });
+};
+
+// GET /api/public/tipos -> cuántos productos publicados hay de cada tipo (accesos del inicio y filtros)
+const tipos = async (req, res) => {
+  const conteo = await Product.aggregate([{ $match: PUBLICADO }, { $group: { _id: '$tipo', total: { $sum: 1 } } }]);
+  const porTipo = new Map(conteo.map((c) => [c._id, c.total]));
+  res.set('Cache-Control', 'public, max-age=300');
+  res.json({ ok: true, tipos: Object.entries(TIPOS).map(([valor, nombre]) => ({ valor, nombre, total: porTipo.get(valor) || 0 })) });
 };
 
 // GET /api/public/productos/destacados -> más vendidas (salidas por venta, últimos 180 días)
@@ -270,4 +332,4 @@ const pedido = async (req, res) => {
   } catch (err) { responderError(res, err); }
 };
 
-module.exports = { buscar, destacados, kits, detalle, sitemap, solicitudMedida, recordatorio, pedido, precioPorCantidad };
+module.exports = { buscar, tipos, destacados, kits, detalle, sitemap, solicitudMedida, recordatorio, pedido, precioPorCantidad };

@@ -19,6 +19,7 @@ const limiteFormularios = limite(60 * 60 * 1000, Number(process.env.LIMITE_FORMU
 
 router.get('/ajustes', ajustes.publicos);
 router.get('/productos', publico.buscar);
+router.get('/tipos', publico.tipos);
 router.get('/productos/destacados', publico.destacados);
 router.get('/productos/:slug', publico.detalle);
 router.get('/kits', publico.kits);
