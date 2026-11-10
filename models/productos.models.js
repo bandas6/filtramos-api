@@ -12,7 +12,7 @@ const tramoSchema = new Schema({
 }, { _id: false });
 
 const equivalenciaSchema = new Schema({
-  marca: { type: String, trim: true, required: [true, 'Cada equivalencia necesita la marca'] },
+  marca: { type: String, trim: true }, // opcional: hay listas que solo traen la referencia
   referencia: { type: String, trim: true, required: [true, 'Cada equivalencia necesita la referencia'] }
 }, { _id: false });
 
@@ -93,7 +93,7 @@ productSchema.pre('validate', function () {
 
   const textos = [
     this.referencia,
-    ...(this.equivalencias || []).flatMap((e) => [e.referencia, `${e.marca} ${e.referencia}`]),
+    ...(this.equivalencias || []).flatMap((e) => [e.referencia, [e.marca, e.referencia].filter(Boolean).join(' ')]),
     ...(this.aplicaciones || [])
   ];
   this.claveBusqueda = [...new Set(textos.map(claveDeBusqueda).filter(Boolean))];

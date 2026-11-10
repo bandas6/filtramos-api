@@ -2,7 +2,8 @@ const mongoose = require('mongoose');
 const Product = require('../../models/productos.models');
 const Movimiento = require('../../models/movimiento.models');
 const { normalizarReferencia, claveDeBusqueda } = require('../../utils/referencias');
-const { TIPOS, slugDe } = require('../../utils/catalogo');
+const { TIPOS } = require('../../utils/catalogo');
+const { slugLibre } = require('../../services/catalogo');
 
 // Campos que el panel puede escribir. stock/reservado los maneja Inventario (etapa C).
 const CAMPOS = [
@@ -68,16 +69,6 @@ async function validarKit(producto) {
   const componentes = await Product.find({ _id: { $in: ids }, estado: true }, { tipo: 1 }).lean();
   if (componentes.length !== ids.length) throw new ErrorDeDatos('Algún componente del kit no existe');
   if (componentes.some((c) => c.tipo === 'kit')) throw new ErrorDeDatos('Un kit no puede contener otro kit');
-}
-
-async function slugLibre(referencia, excluirId) {
-  const base = slugDe(referencia) || 'producto';
-  for (let n = 1; ; n++) {
-    const candidato = n === 1 ? base : `${base}-${n}`;
-    const filtro = { slug: candidato };
-    if (excluirId) filtro._id = { $ne: excluirId };
-    if (!(await Product.exists(filtro))) return candidato;
-  }
 }
 
 async function verificarReferencia(referencia, excluirId) {
@@ -197,7 +188,7 @@ const actualizar = async (req, res) => {
     for (const [campo, valor] of Object.entries(data)) doc.set(campo, valor);
     await validarKit(doc);
     // El slug se mantiene estable (enlaces y SEO); solo se crea si faltaba
-    if (!doc.slug) doc.slug = await slugLibre(doc.referencia, id);
+    if (!doc.slug) doc.slug = await slugLibre(doc.referencia, { excluirId: id });
     await doc.save();
     await doc.populate('kit.producto', 'referencia');
     res.json({ ok: true, producto: respuesta(doc) });

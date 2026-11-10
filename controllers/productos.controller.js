@@ -12,7 +12,7 @@ const almacenamiento = require('../services/almacenamiento');
 
 const PUBLICADOS = { estado: true, publicado: true };
 
-const textoEquivalencias = (p) => (p.equivalencias || []).map((e) => `${e.marca} ${e.referencia}`).join(', ');
+const textoEquivalencias = (p) => (p.equivalencias || []).map((e) => [e.marca, e.referencia].filter(Boolean).join(' ')).join(', ');
 
 // GET /api/productos/obtener?q=  (solo publicados; sin precio de distribuidor)
 const getAll = async (req, res) => {

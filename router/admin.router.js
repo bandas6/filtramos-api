@@ -7,6 +7,7 @@ const usuarios = require('../controllers/admin/usuarios.controller');
 const ajustes = require('../controllers/admin/ajustes.controller');
 const imagenes = require('../controllers/admin/imagenes.controller');
 const inventario = require('../controllers/admin/inventario.controller');
+const importar = require('../controllers/admin/importar.controller');
 
 const router = express.Router();
 const soloAdmin = tieneRol('admin');
@@ -25,6 +26,13 @@ router.delete('/productos/:id', soloAdmin, productos.eliminar);
 router.get('/inventario', inventario.inventario);
 router.get('/movimientos', inventario.listarMovimientos);
 router.post('/movimientos', tieneRol('admin', 'bodega'), inventario.crearMovimiento);
+
+// Importación y exportación Excel (importar cambia productos y stock: solo admin)
+router.get('/importar/plantilla', importar.plantilla);
+router.post('/importar/analizar', soloAdmin, importar.subirExcel, importar.analizar);
+router.post('/importar/errores', soloAdmin, importar.subirExcel, importar.errores);
+router.post('/importar/confirmar', soloAdmin, importar.subirExcel, importar.confirmar);
+router.get('/exportar', importar.exportar);
 
 router.get('/imagenes', imagenes.listar);
 router.post('/imagenes', soloAdmin, upload.single('imagen'), verificarImagen(), imagenes.subir);
