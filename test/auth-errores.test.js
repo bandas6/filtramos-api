@@ -48,7 +48,7 @@ test('JSON mal formado: 400', async () => {
 
 test('subida: archivo que no es imagen responde 400 con mensaje claro', async () => {
   const t = await h.token(request, 'admin');
-  const res = await request.post('/api/productos/crear/imagen')
+  const res = await request.post('/api/admin/imagenes')
     .set('Authorization', `Bearer ${t}`)
     .field('nombre', 'x')
     .attach('imagen', Buffer.from('hola'), { filename: 'x.txt', contentType: 'text/plain' });

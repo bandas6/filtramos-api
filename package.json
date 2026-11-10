@@ -9,7 +9,10 @@
     "revisar-referencias": "node scripts/indice-referencia.js",
     "indice-referencia": "node scripts/indice-referencia.js --crear",
     "test": "node --test --test-concurrency=1 \"test/**/*.test.js\"",
-    "seed:demo": "node scripts/seed-demo.js"
+    "seed:demo": "node scripts/seed-demo.js",
+    "dev:memoria": "node scripts/dev-memoria.js",
+    "indices": "node scripts/indices.js",
+    "migrar:b": "node scripts/migrar-etapa-b.js"
   },
   "keywords": [],
   "author": "",

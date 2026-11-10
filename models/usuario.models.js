@@ -9,11 +9,13 @@ const usuarioSchema = new mongoose.Schema({
   rol: { type: String, enum: ROLES, default: 'ventas' },
   estado: { type: Boolean, default: true },
   ultimoAcceso: { type: Date },
+  // Las sesiones emitidas antes de esta fecha dejan de valer (al restablecer la contraseña)
+  passwordCambiadoEn: { type: Date },
   createdAt: { type: Date, default: Date.now }
 });
 
 usuarioSchema.methods.toJSON = function () {
-  const { __v, _id, password, ...usuario } = this.toObject();
+  const { __v, _id, password, passwordCambiadoEn, ...usuario } = this.toObject();
   usuario.uid = _id;
   return usuario;
 };

@@ -11,10 +11,14 @@ const validarJWT = async (req, res, next) => {
   }
 
   try {
-    const { uid } = jwt.verify(token, process.env.JWT_SECRET);
+    const { uid, iat } = jwt.verify(token, process.env.JWT_SECRET);
     const usuario = await Usuario.findById(uid);
     if (!usuario || !usuario.estado) {
       return res.status(401).json({ ok: false, error: 'Usuario no válido' });
+    }
+    // Token anterior a un cambio de contraseña: ya no vale
+    if (usuario.passwordCambiadoEn && iat < Math.floor(usuario.passwordCambiadoEn.getTime() / 1000)) {
+      return res.status(401).json({ ok: false, error: 'Sesión vencida o inválida' });
     }
     req.usuario = usuario;
     next();

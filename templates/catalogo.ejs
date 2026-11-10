@@ -235,7 +235,7 @@
                         </div>
                         <div class="row"><span class="label">Equivalencias:</span>
                           <p>
-                            <%= (p.equivalencias && p.equivalencias.length) ? p.equivalencias.join(', ') : ' N/A' %>
+                            <%= p.equivalenciasTexto || 'N/A' %>
                           </p>
                         </div>
                       </div>
@@ -301,7 +301,7 @@
                         </div>
                         <div class="row"><span class="label">Poliuretano:</span>
                           <p>
-                            <%= p.polibretano || 'N/A' %>
+                            <%= p.poliuretano || 'N/A' %>
                           </p>
                         </div>
                         <div class="row"><span class="label">Anillo:</span>

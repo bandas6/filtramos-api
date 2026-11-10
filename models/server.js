@@ -34,13 +34,17 @@ class Server {
 
     this.app.use(express.json({ limit: '1mb' }));
 
-    // Archivos públicos (imágenes subidas y logo)
+    // Imágenes del almacenamiento local (si se usa) y archivos públicos (logo)
+    const { RAIZ } = require('../services/almacenamiento');
+    if (RAIZ) this.app.use('/uploads', express.static(RAIZ, { fallthrough: true }));
     this.app.use(express.static(path.join(__dirname, '../public')));
   }
 
   routes() {
     this.app.use('/api/auth', require('../router/auth.router'));
     this.app.use('/api/productos', require('../router/productos.router'));
+    this.app.use('/api/admin', require('../router/admin.router'));
+    this.app.use('/api/public', require('../router/public.router'));
 
     // Errores no controlados. Solo se devuelve el mensaje real en errores esperados del cliente.
     this.app.use((err, req, res, next) => {

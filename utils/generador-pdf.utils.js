@@ -17,7 +17,7 @@ const generatePdf = async (products) => {
       .text(`Referencia: ${product.referencia || 'N/A'}`)
       .fontSize(11)
       .text(`Diámetro externo: ${product.diametroExterno || 'N/A'} · Diámetro interno: ${product.diametroInterno || 'N/A'}`)
-      .text(`Equivalencias: ${(product.equivalencias || []).join(', ') || 'N/A'}`)
+      .text(`Equivalencias: ${product.equivalenciasTexto || 'N/A'}`)
       .text(`Aplicaciones: ${(product.aplicaciones || []).join(', ') || 'N/A'}`)
       .moveDown();
   });

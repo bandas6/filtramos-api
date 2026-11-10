@@ -7,8 +7,8 @@ require('dotenv').config();
 const mongoose = require('mongoose');
 const { dbConnection } = require('../database/config');
 const Product = require('../models/productos.models');
-
-const PREFIJO = 'DEMO-';
+const { slugDe } = require('../utils/catalogo');
+const { PREFIJO, crearDemo } = require('./datos-demo');
 const borrar = process.argv.includes('--borrar');
 
 function verificarEntorno() {
@@ -24,17 +24,6 @@ function verificarEntorno() {
   }
 }
 
-// Valores claramente ficticios: no son precios, equivalencias ni medidas reales.
-const PRODUCTOS = [
-  { referencia: 'DEMO-AP-001', category: 'Aire primario', diametroExterno: '300', diametroInterno: 180, alto: 400, equivalencias: ['DEMO-MARCA-A 001'], aplicaciones: ['Máquina de prueba 1'], stock: 40 },
-  { referencia: 'DEMO-AP-002', category: 'Aire primario', diametroExterno: '260', diametroInterno: 150, alto: 350, equivalencias: ['DEMO-MARCA-B 002'], aplicaciones: ['Máquina de prueba 2'], stock: 3 },
-  { referencia: 'DEMO-AS-001', category: 'Aire seguridad', diametroExterno: '170', diametroInterno: 120, alto: 380, equivalencias: ['DEMO-MARCA-A 101'], stock: 12 },
-  { referencia: 'DEMO-PF-001', category: 'Prefiltro', diametroExterno: '320', alto: 100, stock: 0 },
-  { referencia: 'DEMO-CO-001', category: 'Compresor', diametroExterno: '140', diametroInterno: 80, alto: 200, equivalencias: ['DEMO-MARCA-C 55'], stock: 1 },
-  { referencia: 'DEMO-CA-001', category: 'Cabina', alto: 50, stock: 25 },
-  { referencia: 'DEMO-KIT-001', category: 'Kit', aplicaciones: ['Máquina de prueba 1'], stock: 0 }
-];
-
 (async () => {
   verificarEntorno();
   await dbConnection();
@@ -43,13 +32,8 @@ const PRODUCTOS = [
     const { deletedCount } = await Product.deleteMany({ referenciaNormalizada: { $regex: `^${PREFIJO}` } });
     console.log(`Productos DEMO- borrados: ${deletedCount}`);
   } else {
-    let creados = 0;
-    for (const p of PRODUCTOS) {
-      if (await Product.exists({ referenciaNormalizada: p.referencia })) continue;
-      await new Product(p).save();
-      creados++;
-    }
-    console.log(`Productos DEMO- creados: ${creados} (ya existían: ${PRODUCTOS.length - creados})`);
+    const creados = await crearDemo(Product, { slugDe });
+    console.log(`Productos DEMO- creados: ${creados}`);
   }
 
   await mongoose.disconnect();
