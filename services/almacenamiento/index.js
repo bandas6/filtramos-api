@@ -2,10 +2,10 @@
 //   guardar({ buffer, extension, carpeta }) -> { url }
 //   eliminar(url) -> void
 //   leer(url) -> Buffer | null
-// Hoy: disco local (public/uploads). En la etapa E se agrega ./cloudinary.js con la misma
-// interfaz y se elige con ALMACENAMIENTO=cloudinary, sin tocar controladores ni panel.
+// Proveedores: local (disco, por defecto) y cloudinary. Se elige con ALMACENAMIENTO.
 const proveedores = {
-  local: () => require('./local')
+  local: () => require('./local'),
+  cloudinary: () => require('./cloudinary')
 };
 
 const nombre = process.env.ALMACENAMIENTO || 'local';

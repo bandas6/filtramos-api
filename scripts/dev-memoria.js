@@ -13,6 +13,7 @@ const os = require('os');
   // Antes de cargar .env: estas variables tienen prioridad y apuntan a lo temporal
   process.env.MONGO_DBCNN = replSet.getUri('filtramos_dev_memoria');
   process.env.UPLOADS_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'filtramos-uploads-'));
+  process.env.ALMACENAMIENTO = 'local'; // lo temporal no sube nada a la nube
   require('dotenv').config();
   if (!process.env.JWT_SECRET) process.env.JWT_SECRET = require('crypto').randomBytes(48).toString('hex');
 
