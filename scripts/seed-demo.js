@@ -1,7 +1,7 @@
 // Datos de prueba ficticios para desarrollo. Todas las referencias empiezan por DEMO-.
 // Uso:
 //   npm run seed:demo               -> crea los productos DEMO- que falten
-//   npm run seed:demo -- --borrar   -> borra solo los productos DEMO- (y, desde la etapa C, sus movimientos)
+//   npm run seed:demo -- --borrar   -> borra solo los productos DEMO- y sus movimientos
 // Protección: se niega a correr en producción. Requiere PERMITIR_DEMO=1 en .env y PUBLIC_URL en localhost.
 require('dotenv').config();
 const mongoose = require('mongoose');
@@ -9,6 +9,8 @@ const { dbConnection } = require('../database/config');
 const Product = require('../models/productos.models');
 const { slugDe } = require('../utils/catalogo');
 const { PREFIJO, crearDemo } = require('./datos-demo');
+const Movimiento = require('../models/movimiento.models');
+const { registrar } = require('../services/inventario');
 const borrar = process.argv.includes('--borrar');
 
 function verificarEntorno() {
@@ -29,10 +31,11 @@ function verificarEntorno() {
   await dbConnection();
 
   if (borrar) {
+    const movs = await Movimiento.deleteMany({ referencia: { $regex: `^${PREFIJO}` } }).setOptions({ permitirBorradoDemo: true });
     const { deletedCount } = await Product.deleteMany({ referenciaNormalizada: { $regex: `^${PREFIJO}` } });
-    console.log(`Productos DEMO- borrados: ${deletedCount}`);
+    console.log(`Productos DEMO- borrados: ${deletedCount} · movimientos DEMO- borrados: ${movs.deletedCount}`);
   } else {
-    const creados = await crearDemo(Product, { slugDe });
+    const creados = await crearDemo(Product, { slugDe, registrar, usuario: { nombre: 'seed:demo' } });
     console.log(`Productos DEMO- creados: ${creados}`);
   }
 

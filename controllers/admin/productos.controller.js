@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const Product = require('../../models/productos.models');
+const Movimiento = require('../../models/movimiento.models');
 const { normalizarReferencia, claveDeBusqueda } = require('../../utils/referencias');
 const { TIPOS, slugDe } = require('../../utils/catalogo');
 
@@ -209,6 +210,10 @@ const eliminar = async (req, res) => {
   try {
     const { id } = req.params;
     if (!mongoose.isValidObjectId(id)) return res.status(404).json({ ok: false, error: 'Producto no encontrado' });
+    // Con movimientos de inventario no se borra: el historial debe seguir apuntando a un producto
+    if (await Movimiento.exists({ producto: id })) {
+      return res.status(409).json({ ok: false, error: 'No se puede eliminar: tiene movimientos de inventario. Use "Publicar" para ocultarlo de la web.' });
+    }
     const kits = await Product.find({ 'kit.producto': id, estado: true }, { referencia: 1 }).lean();
     if (kits.length) {
       return res.status(409).json({

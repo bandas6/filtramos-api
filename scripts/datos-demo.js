@@ -31,7 +31,9 @@ function productosDemo(fotoDemo) {
 }
 
 // Crea los que falten (idempotente). Devuelve cuántos creó.
-async function crearDemo(Product, { fotoDemo = null, slugDe } = {}) {
+// Con "registrar" (services/inventario) el stock inicial entra como movimiento de carga inicial
+// y se agrega una reserva de ejemplo; sin él, el stock se escribe directo.
+async function crearDemo(Product, { fotoDemo = null, slugDe, registrar = null, usuario = null } = {}) {
   let creados = 0;
   for (const p of productosDemo(fotoDemo)) {
     if (await Product.exists({ referenciaNormalizada: p.referencia })) continue;
@@ -43,7 +45,15 @@ async function crearDemo(Product, { fotoDemo = null, slugDe } = {}) {
         if (comp) datos.kit.push({ producto: comp._id, cantidad: c.cantidad });
       }
     }
-    await new Product({ ...datos, slug: slugDe(p.referencia) }).save();
+    const stockInicial = datos.stock || 0;
+    if (registrar) datos.stock = 0;
+    const doc = await new Product({ ...datos, slug: slugDe(p.referencia) }).save();
+    if (registrar && stockInicial > 0) {
+      await registrar({ producto: doc._id, tipo: 'entrada', motivo: 'carga-inicial', cantidad: stockInicial, usuario, nota: 'Datos de demostración' });
+    }
+    if (registrar && p.referencia === 'DEMO-AS-001') {
+      await registrar({ producto: doc._id, tipo: 'reserva', motivo: 'pedido-web', cantidad: 2, origen: 'web', referenciaExterna: 'DEMO-PEDIDO-1', nota: 'Reserva de demostración' });
+    }
     creados++;
   }
   return creados;

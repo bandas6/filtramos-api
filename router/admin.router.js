@@ -6,6 +6,7 @@ const productos = require('../controllers/admin/productos.controller');
 const usuarios = require('../controllers/admin/usuarios.controller');
 const ajustes = require('../controllers/admin/ajustes.controller');
 const imagenes = require('../controllers/admin/imagenes.controller');
+const inventario = require('../controllers/admin/inventario.controller');
 
 const router = express.Router();
 const soloAdmin = tieneRol('admin');
@@ -20,6 +21,10 @@ router.get('/productos/:id', productos.obtener);
 router.post('/productos', soloAdmin, productos.crear);
 router.put('/productos/:id', soloAdmin, productos.actualizar);
 router.delete('/productos/:id', soloAdmin, productos.eliminar);
+
+router.get('/inventario', inventario.inventario);
+router.get('/movimientos', inventario.listarMovimientos);
+router.post('/movimientos', tieneRol('admin', 'bodega'), inventario.crearMovimiento);
 
 router.get('/imagenes', imagenes.listar);
 router.post('/imagenes', soloAdmin, upload.single('imagen'), verificarImagen(), imagenes.subir);

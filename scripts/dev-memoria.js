@@ -42,7 +42,9 @@ const os = require('os');
 
   const { crearDemo } = require('./datos-demo');
   const { slugDe } = require('../utils/catalogo');
-  const creados = await crearDemo(mongoose.model('Product'), { fotoDemo: url, slugDe });
+  const { registrar } = require('../services/inventario');
+  const admin = await Usuario.findOne({ rol: 'admin' });
+  const creados = await crearDemo(mongoose.model('Product'), { fotoDemo: url, slugDe, registrar, usuario: admin });
 
   // Arranca el servidor sin volver a conectar
   const Server = require('../models/server');
