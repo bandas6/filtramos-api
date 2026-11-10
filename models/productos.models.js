@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { normalizarReferencia, claveDeBusqueda } = require('../utils/referencias');
 
 const productSchema = new mongoose.Schema({
   referencia: { type: String, required: true, trim: true },
@@ -21,19 +22,33 @@ const productSchema = new mongoose.Schema({
   estado: { type: Boolean, default: true },
   category: { type: String },
   stock: { type: Number, default: 0 },
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now },
+
+  // Calculados en el hook de abajo; no se escriben desde el panel
+  referenciaNormalizada: { type: String },        // unicidad: mayúsculas, sin espacios, con guiones
+  claveBusqueda: { type: [String], default: [] }  // búsqueda: solo letras y números (referencia y equivalencias)
+});
+
+// Única entre los productos que la tienen
+productSchema.index(
+  { referenciaNormalizada: 1 },
+  { unique: true, name: 'referenciaNormalizada_unica', partialFilterExpression: { referenciaNormalizada: { $type: 'string' } } }
+);
+productSchema.index({ claveBusqueda: 1 }, { name: 'claveBusqueda' });
+
+// Se recalculan en cada save(). Para cambiar referencia o equivalencias use save(), no updateOne/findOneAndUpdate.
+productSchema.pre('validate', function () {
+  this.referenciaNormalizada = normalizarReferencia(this.referencia) || undefined;
+  this.claveBusqueda = [...new Set(
+    [this.referencia, ...(this.equivalencias || [])].map(claveDeBusqueda).filter(Boolean)
+  )];
 });
 
 // Método para modificar la respuesta JSON del modelo
 productSchema.methods.toJSON = function () {
-  const { __v, _id, estado, ...product } = this.toObject();
+  const { __v, _id, estado, referenciaNormalizada, claveBusqueda, ...product } = this.toObject();
   product.uid = _id;
   return product;
 };
 
-// Comparación de referencias sin distinguir mayúsculas ("AF-100" = "af-100").
-// El índice único con esta colación lo crea scripts/indice-referencia.js, solo si no hay duplicados.
-const COLACION_REFERENCIA = { locale: 'es', strength: 2 };
-
 module.exports = mongoose.model('Product', productSchema);
-module.exports.COLACION_REFERENCIA = COLACION_REFERENCIA;

@@ -35,10 +35,23 @@ El catálogo PDF admite 5 solicitudes por minuto por IP. El login cuenta solo lo
 
 ## Referencias únicas
 
-La referencia no distingue mayúsculas (`AF-100` = `af-100`). Para la base existente:
+- **Unicidad** (`referenciaNormalizada`, índice único): no cuentan mayúsculas ni espacios; los guiones sí.
+  `af-100` = `AF-100`, `AF 100` = `AF100`, pero `AF-100` ≠ `AF100`.
+- **Búsqueda** (`claveBusqueda`, en referencia y equivalencias): solo letras y números. `af100` encuentra `AF-100`.
+  `GET /api/productos/obtener?q=af100`.
+- Ambos campos los calcula el modelo al guardar con `save()`; no se envían desde el panel.
+
+Antes de una carga masiva:
 
 - `npm run revisar-referencias`: lista productos sin referencia y referencias duplicadas. No cambia nada.
-- `npm run indice-referencia`: crea el índice único, solo si no hay duplicados.
+- `npm run indice-referencia`: si no hay duplicados, completa los campos calculados y sincroniza los índices.
+
+## Pruebas y datos de prueba
+
+- `npm test`: pruebas de la API sobre MongoDB en memoria (modo réplica). No toca la base real. Como respaldo
+  se puede usar `MONGO_TEST_URI`, pero las pruebas se niegan a correr si la base no termina en `_test`.
+- `npm run seed:demo`: crea productos ficticios `DEMO-…`; `npm run seed:demo -- --borrar` los elimina.
+  Solo en local: requiere `PERMITIR_DEMO=1` en `.env`, `PUBLIC_URL` en localhost y que `NODE_ENV` no sea `production`.
 
 ## Pendiente conocido
 

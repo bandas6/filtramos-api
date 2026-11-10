@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const Product = require('../models/productos.models');
+const { normalizarReferencia, claveDeBusqueda } = require('../utils/referencias');
 const Files = require('../models/files.models');
 const ejs = require('ejs');
 const path = require('path');
@@ -20,17 +21,19 @@ const vacio = (v) => v === null || v === undefined || (typeof v === 'string' && 
 
 const esErrorDeDatos = (error) => error.name === 'ValidationError' || error.name === 'CastError';
 
-// Busca otro producto con la misma referencia sin distinguir mayúsculas
+// Busca otro producto con la misma referencia normalizada (mayúsculas y espacios no cuentan; guiones sí)
 const referenciaEnUso = (referencia, excluirId) => {
-  const filtro = { referencia };
+  const filtro = { referenciaNormalizada: normalizarReferencia(referencia) };
   if (excluirId) filtro._id = { $ne: excluirId };
-  return Product.findOne(filtro).collation(Product.COLACION_REFERENCIA);
+  return Product.exists(filtro);
 };
 
-// Obtener todos los productos
+// Obtener todos los productos. ?q= busca en referencia y equivalencias ignorando mayúsculas, espacios y guiones
 const getAll = async (req, res) => {
   try {
-    const products = await Product.find();
+    const clave = claveDeBusqueda(req.query.q);
+    const filtro = clave ? { claveBusqueda: { $regex: clave } } : {};
+    const products = await Product.find(filtro);
     res.status(200).json({ ok: true, products });
   } catch (error) {
     console.error('Error fetching products:', error);
@@ -131,24 +134,19 @@ const update = async (req, res) => {
       }
     }
 
-    // Los campos enviados vacíos (null o '') se borran del documento
-    const $set = {};
-    const $unset = {};
-    for (const [campo, valor] of Object.entries(data)) {
-      if (vacio(valor)) $unset[campo] = '';
-      else $set[campo] = valor;
-    }
-    const cambios = {};
-    if (Object.keys($set).length) cambios.$set = $set;
-    if (Object.keys($unset).length) cambios.$unset = $unset;
-
-    const updatedProduct = await Product.findByIdAndUpdate(id, cambios, { new: true, runValidators: true });
-
-    if (!updatedProduct) {
+    const product = await Product.findById(id);
+    if (!product) {
       return res.status(404).json({ ok: false, error: 'Product not found' });
     }
 
-    res.status(200).json({ ok: true, product: updatedProduct });
+    // Los campos enviados vacíos (null o '') se borran del documento.
+    // Se guarda con save() para que el modelo recalcule la referencia normalizada y la clave de búsqueda.
+    for (const [campo, valor] of Object.entries(data)) {
+      product.set(campo, vacio(valor) ? undefined : valor);
+    }
+    await product.save();
+
+    res.status(200).json({ ok: true, product });
   } catch (error) {
     if (error.code === 11000) return res.status(400).json({ ok: false, error: 'Ya existe un producto con esa referencia' });
     if (esErrorDeDatos(error)) return res.status(400).json({ ok: false, error: error.message });

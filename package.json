@@ -8,7 +8,8 @@
     "crear-admin": "node scripts/crear-admin.js",
     "revisar-referencias": "node scripts/indice-referencia.js",
     "indice-referencia": "node scripts/indice-referencia.js --crear",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test --test-concurrency=1 \"test/**/*.test.js\"",
+    "seed:demo": "node scripts/seed-demo.js"
   },
   "keywords": [],
   "author": "",
@@ -26,5 +27,9 @@
     "multer": "^2.0.1",
     "pdfkit": "^0.17.1",
     "puppeteer": "^24.10.0"
+  },
+  "devDependencies": {
+    "mongodb-memory-server": "^11.3.0",
+    "supertest": "^7.3.2"
   }
 }
