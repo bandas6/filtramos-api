@@ -1,62 +1,59 @@
 const express = require('express');
 const cors = require('cors');
-const { dbConnection } = require('../database/config')
 const path = require('path');
+const { dbConnection } = require('../database/config');
 
 class Server {
 
-    constructor() {
+  constructor() {
+    this.app = express();
+    this.port = process.env.PORT || 8080;
 
-        this.app = express();
-        this.port = process.env.PORT;
+    this.middlewares();
+    this.routes();
+  }
 
-        this.paths = {
-            productos: 'api'
-        }
+  middlewares() {
+    // CORS: solo los orígenes configurados en CORS_ORIGINS
+    const origenes = (process.env.CORS_ORIGINS || '')
+      .split(',')
+      .map((o) => o.trim())
+      .filter(Boolean);
 
-        // Connected DB
-        this.conectarDB();
+    this.app.use(cors({
+      origin: (origin, callback) => {
+        // Peticiones sin origen (curl, servidor a servidor) o de un origen permitido
+        if (!origin || origenes.includes(origin)) return callback(null, true);
+        return callback(null, false);
+      }
+    }));
 
-        // middlewares
-        this.middlewares();
+    this.app.use(express.json({ limit: '1mb' }));
 
-        // rutas de mi aplicacion
-        this.routes();
+    // Archivos públicos (imágenes subidas y logo)
+    this.app.use(express.static(path.join(__dirname, '../public')));
+  }
 
+  routes() {
+    this.app.use('/api/auth', require('../router/auth.router'));
+    this.app.use('/api/productos', require('../router/productos.router'));
+
+    // Errores no controlados (por ejemplo, archivo rechazado por multer)
+    this.app.use((err, req, res, next) => {
+      console.error(err);
+      res.status(err.status || 400).json({ ok: false, error: err.message || 'Solicitud inválida' });
+    });
+  }
+
+  async listen() {
+    if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
+      throw new Error('Defina JWT_SECRET (mínimo 32 caracteres) en .env');
     }
-
-    async conectarDB() {
-        await dbConnection();
-    }
-
-    middlewares() {
-
-        // CORS
-        this.app.use(cors());
-
-        // lectura y parceo de el body
-        this.app.use(express.json());
-
-        // Habilitar carpeta pública
-        this.app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
-
-        // Direcctorio publico
-        this.app.use(express.static('public'));
-
-    }
-
-
-    routes() {
-        this.app.use('/api/productos', require('../router/productos.router'));
-    }
-
-    async listen() {
-        this.app.listen(this.port, async () => {
-            console.log(`Server is running on port ${this.port}`);
-        });
-    }
-
-
+    await dbConnection();
+    this.app.listen(this.port, () => {
+      console.log(`Server is running on port ${this.port}`);
+    });
+  }
 }
 
 module.exports = Server;

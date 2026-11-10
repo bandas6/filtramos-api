@@ -1,9 +1,10 @@
 const mongoose = require('mongoose');
 
 const productSchema = new mongoose.Schema({
-  referencia: { type: String },
+  referencia: { type: String, required: true, trim: true },
   diametroExterno: { type: String },
   diametroInterno: { type: Number },
+  alto: { type: Number }, // altura total del elemento (mm)
   alturaPliegue: { type: Number },
   cortePapel: { type: Number },
   cantidadPliegues: { type: Number },

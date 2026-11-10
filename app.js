@@ -1,7 +1,9 @@
-// app.js
-require('dotenv').config(); // Si usas variables de entorno como PORT
+require('dotenv').config();
 const Server = require('./models/server');
 
 const server = new Server();
 
-server.listen();
+server.listen().catch((err) => {
+  console.error('No se pudo iniciar el servidor:', err.message);
+  process.exit(1);
+});

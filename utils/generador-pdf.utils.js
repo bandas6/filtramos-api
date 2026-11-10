@@ -7,27 +7,24 @@ const generatePdf = async (products) => {
   const buffers = [];
 
   doc.on('data', buffers.push.bind(buffers));
-  doc.on('end', () => { });
+  const terminado = new Promise(resolve => doc.on('end', resolve));
 
   doc.fontSize(18).text('Catálogo de Productos', { align: 'center' });
 
   products.forEach(product => {
     doc
       .fontSize(14)
-      .text(`Nombre: ${product.name}`)
-      .text(`Precio: $${product.price}`)
-      .text(`Descripción: ${product.description}`)
+      .text(`Referencia: ${product.referencia || 'N/A'}`)
+      .fontSize(11)
+      .text(`Diámetro externo: ${product.diametroExterno || 'N/A'} · Diámetro interno: ${product.diametroInterno || 'N/A'}`)
+      .text(`Equivalencias: ${(product.equivalencias || []).join(', ') || 'N/A'}`)
+      .text(`Aplicaciones: ${(product.aplicaciones || []).join(', ') || 'N/A'}`)
       .moveDown();
   });
 
   doc.end();
-
-  return new Promise(resolve => {
-    doc.on('end', () => {
-      const pdfData = Buffer.concat(buffers);
-      resolve(pdfData);
-    });
-  });
+  await terminado;
+  return Buffer.concat(buffers);
 };
 
 // utils/pdfGenerator.js

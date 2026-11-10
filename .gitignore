@@ -1,0 +1,9 @@
+/node_modules
+/.idea
+.env
+.env.*
+!.env.example
+
+# Imágenes subidas por los usuarios (no se versionan; solo el logo)
+public/uploads/*
+!public/uploads/logo.png

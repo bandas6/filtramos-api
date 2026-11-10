@@ -2,8 +2,19 @@ const Product = require('../models/productos.models');
 const Files = require('../models/files.models');
 const ejs = require('ejs');
 const path = require('path');
-const { generatePdfFile, generatePdfFromHtml } = require('../utils/generador-pdf.utils');
+const { generatePdf: generatePdfFile, generatePdfFromHtml } = require('../utils/generador-pdf.utils');
 const { getBase64Image } = require('../middlewares/genB64');
+
+// Campos que se pueden escribir desde el panel (evita que se cuelen otros, p. ej. _id)
+const CAMPOS = [
+  'referencia', 'diametroExterno', 'diametroInterno', 'alto', 'alturaPliegue', 'cortePapel',
+  'cantidadPliegues', 'malla', 'longitudMallaExterna', 'longitudMallaInterna', 'polibretano',
+  'anillo', 'tapa', 'aplicaciones', 'equivalencias', 'imagesUrl', 'papeles', 'category', 'stock'
+];
+const limpiar = (body = {}) =>
+  Object.fromEntries(Object.entries(body).filter(([k]) => CAMPOS.includes(k)));
+
+const esErrorDeDatos = (error) => error.name === 'ValidationError' || error.name === 'CastError';
 
 // Obtener todos los productos
 const getAll = async (req, res) => {
@@ -24,65 +35,68 @@ const getById = async (req, res) => {
     if (!product) return res.status(404).json({ ok: false, error: 'Product not found' });
     res.status(200).json({ ok: true, product });
   } catch (error) {
+    if (esErrorDeDatos(error)) return res.status(404).json({ ok: false, error: 'Product not found' });
     console.error('Error fetching product by ID:', error);
     res.status(500).json({ ok: false, error: 'Internal Server Error' });
   }
 };
 
-// Crear producto sin imagen
+// Crear producto
 const create = async (req, res) => {
   try {
-    const { nombre, precio, descripcion } = req.body;
+    const data = limpiar(req.body);
+    data.referencia = String(data.referencia || '').trim();
 
-    if (!nombre || !precio) {
-      return res.status(400).json({ ok: false, error: 'Nombre y precio son requeridos' });
+    if (!data.referencia) {
+      return res.status(400).json({ ok: false, error: 'La referencia es requerida' });
     }
 
-    const product = new Product(req.body);
+    const existe = await Product.findOne({ referencia: data.referencia });
+    if (existe) {
+      return res.status(400).json({ ok: false, error: `Ya existe un producto con la referencia ${data.referencia}` });
+    }
+
+    const product = new Product(data);
     await product.save();
 
-    res.status(200).json({ ok: true, product });
+    res.status(201).json({ ok: true, product });
   } catch (error) {
+    if (esErrorDeDatos(error)) return res.status(400).json({ ok: false, error: error.message });
     console.error('Error creating product:', error);
     res.status(500).json({ ok: false, error: 'Internal Server Error' });
   }
 };
 
-// Crear producto con imagen
+// Subir una imagen a la biblioteca de imágenes
 const createWithImage = async (req, res) => {
   try {
     const { nombre } = req.body;
 
-    if (!nombre) {
-      return res.status(400).json({ ok: false, error: 'Nombre y precio son requeridos' });
+    if (!nombre || !req.file) {
+      return res.status(400).json({ ok: false, error: 'El nombre y la imagen son requeridos' });
     }
-
-    const imagePath = req.file ? `/uploads/${req.file.filename}` : null;
 
     const file = new Files({
       nombre,
-      imagen: imagePath
+      imagen: `/uploads/${req.file.filename}`
     });
 
     await file.save();
 
-    res.status(200).json({ ok: true, file });
+    res.status(201).json({ ok: true, file });
   } catch (error) {
-    console.error('Error creating product with image:', error);
+    console.error('Error uploading image:', error);
     res.status(500).json({ ok: false, error: 'Internal Server Error' });
   }
 };
 
-// Crear producto con imagen
+// Listar imágenes disponibles
 const getFiles = async (req, res) => {
   try {
-
     const files = await Files.find({ estado: true });
-
     res.status(200).json({ ok: true, files });
-
   } catch (error) {
-    console.error('Error creating product with image:', error);
+    console.error('Error fetching images:', error);
     res.status(500).json({ ok: false, error: 'Internal Server Error' });
   }
 };
@@ -91,8 +105,20 @@ const getFiles = async (req, res) => {
 const update = async (req, res) => {
   try {
     const { id } = req.params;
+    const data = limpiar(req.body);
 
-    const updatedProduct = await Product.findByIdAndUpdate(id, req.body, { new: true });
+    if ('referencia' in data) {
+      data.referencia = String(data.referencia || '').trim();
+      if (!data.referencia) {
+        return res.status(400).json({ ok: false, error: 'La referencia no puede quedar vacía' });
+      }
+      const otro = await Product.findOne({ referencia: data.referencia, _id: { $ne: id } });
+      if (otro) {
+        return res.status(400).json({ ok: false, error: `Ya existe un producto con la referencia ${data.referencia}` });
+      }
+    }
+
+    const updatedProduct = await Product.findByIdAndUpdate(id, data, { new: true, runValidators: true });
 
     if (!updatedProduct) {
       return res.status(404).json({ ok: false, error: 'Product not found' });
@@ -100,6 +126,7 @@ const update = async (req, res) => {
 
     res.status(200).json({ ok: true, product: updatedProduct });
   } catch (error) {
+    if (esErrorDeDatos(error)) return res.status(400).json({ ok: false, error: error.message });
     console.error('Error updating product:', error);
     res.status(500).json({ ok: false, error: 'Internal Server Error' });
   }
@@ -118,6 +145,7 @@ const remove = async (req, res) => {
 
     res.status(200).json({ ok: true, message: 'Product deleted successfully' });
   } catch (error) {
+    if (esErrorDeDatos(error)) return res.status(404).json({ ok: false, error: 'Product not found' });
     console.error('Error deleting product:', error);
     res.status(500).json({ ok: false, error: 'Internal Server Error' });
   }
@@ -137,7 +165,7 @@ const generatePdf = async (req, res) => {
   }
 };
 
-// Controlador para generar PDF
+// Generar el catálogo PDF a partir de la plantilla HTML
 const generatePdfHtml = async (req, res) => {
   try {
     const products = await Product.find();
@@ -150,10 +178,9 @@ const generatePdfHtml = async (req, res) => {
         : []
     }));
 
-    // Renderizar HTML con las imágenes embebidas
     const html = await ejs.renderFile(
       path.join(__dirname, '../templates/catalogo.ejs'),
-      { products: productsWithImages }
+      { products: productsWithImages, logoBase64: getBase64Image('/uploads/logo.png') }
     );
 
     const pdfBuffer = await generatePdfFromHtml(html);

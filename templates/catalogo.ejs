@@ -191,7 +191,7 @@
       <div class="page">
         <!-- Logo -->
         <div class="logo">
-          <img class="logo_img" src="http://localhost:8080/uploads/logo.png" alt="Logo">
+          <img class="logo_img" src="<%= logoBase64 %>" alt="Logo">
         </div>
 
         <hr class="h1_1">
@@ -266,7 +266,7 @@
                       <div class="c-tech">
                         <div class="row"><span class="label">Papel:</span>
                           <p>
-                            <%= p.papel || 'N/A' %>
+                            <%= (p.papeles && p.papeles.length) ? p.papeles.join(', ') : 'N/A' %>
                           </p>
                         </div>
                         <div class="row"><span class="label">Altura de Pliegue:</span>
