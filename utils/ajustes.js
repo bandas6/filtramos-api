@@ -10,6 +10,8 @@ const AJUSTES = [
   { clave: 'tiempoDespacho', etiqueta: 'Tiempo de despacho', publico: true, ayuda: 'Se muestra como "Despacho en …". Ej.: 24–48 h' },
   { clave: 'tiempoFabricacion', etiqueta: 'Tiempo de fabricación bajo pedido', publico: true, ayuda: 'Se muestra como "Lo fabricamos en …". Ej.: 8 días hábiles' },
   { clave: 'tiempoRespuestaCotizacion', etiqueta: 'Tiempo de respuesta de cotizaciones', publico: true, ayuda: 'Se muestra como "Cotizamos en …". Ej.: 24 horas' },
+  { clave: 'notaPrecios', etiqueta: 'Nota bajo los precios', publico: true,
+    ayuda: 'Se muestra bajo cada precio. Ej.: si el precio incluye IVA y cómo se cobra el envío.' },
   { clave: 'garantia', etiqueta: 'Términos de garantía', publico: true, multilinea: true },
   { clave: 'politicaEnvios', etiqueta: 'Política de envíos', publico: true, multilinea: true },
   { clave: 'politicaDatos', etiqueta: 'Política de tratamiento de datos (Ley 1581)', publico: true, multilinea: true,

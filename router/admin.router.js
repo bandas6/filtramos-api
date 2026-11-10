@@ -8,6 +8,7 @@ const ajustes = require('../controllers/admin/ajustes.controller');
 const imagenes = require('../controllers/admin/imagenes.controller');
 const inventario = require('../controllers/admin/inventario.controller');
 const importar = require('../controllers/admin/importar.controller');
+const solicitudes = require('../controllers/admin/solicitudes.controller');
 
 const router = express.Router();
 const soloAdmin = tieneRol('admin');
@@ -33,6 +34,16 @@ router.post('/importar/analizar', soloAdmin, importar.subirExcel, importar.anali
 router.post('/importar/errores', soloAdmin, importar.subirExcel, importar.errores);
 router.post('/importar/confirmar', soloAdmin, importar.subirExcel, importar.confirmar);
 router.get('/exportar', importar.exportar);
+
+// Cotizaciones y pedidos del sitio (ventas y admin gestionan; bodega consulta)
+const gestionVentas = tieneRol('admin', 'ventas');
+router.get('/solicitudes/pendientes', solicitudes.pendientes);
+router.get('/pedidos', solicitudes.listarPedidos);
+router.put('/pedidos/:id/estado', gestionVentas, solicitudes.cambiarEstadoPedido);
+router.get('/solicitudes-medida', solicitudes.listarMedida);
+router.put('/solicitudes-medida/:id', gestionVentas, solicitudes.actualizarMedida);
+router.get('/recordatorios', solicitudes.listarRecordatorios);
+router.put('/recordatorios/:id', gestionVentas, solicitudes.actualizarRecordatorio);
 
 router.get('/imagenes', imagenes.listar);
 router.post('/imagenes', soloAdmin, upload.single('imagen'), verificarImagen(), imagenes.subir);
